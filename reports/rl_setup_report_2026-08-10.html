@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Isaac Gym / legged_gym 今日配置与验证报告</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+    body {
+      font-family: "Noto Sans CJK SC", "Microsoft YaHei", "WenQuanYi Micro Hei", Arial, sans-serif;
+      color: #202124;
+      line-height: 1.58;
+      font-size: 12.5px;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 0 0 8px;
+      color: #111827;
+    }
+    h2 {
+      font-size: 17px;
+      margin: 24px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #d0d7de;
+      color: #1f2937;
+    }
+    h3 {
+      font-size: 14px;
+      margin: 16px 0 6px;
+      color: #374151;
+    }
+    p {
+      margin: 6px 0;
+    }
+    ul {
+      margin: 6px 0 8px 20px;
+      padding: 0;
+    }
+    li {
+      margin: 3px 0;
+    }
+    code {
+      font-family: "JetBrains Mono", "Consolas", "DejaVu Sans Mono", monospace;
+      font-size: 11px;
+      background: #f3f4f6;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    pre {
+      font-family: "JetBrains Mono", "Consolas", "DejaVu Sans Mono", monospace;
+      font-size: 10.5px;
+      line-height: 1.42;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 9px 11px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 11.5px;
+    }
+    th, td {
+      border: 1px solid #d0d7de;
+      padding: 6px 7px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #f3f4f6;
+      font-weight: 700;
+    }
+    .meta {
+      color: #4b5563;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+    .ok {
+      color: #0f766e;
+      font-weight: 700;
+    }
+    .warn {
+      color: #b45309;
+      font-weight: 700;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+  <h1>Isaac Gym / legged_gym 今日配置与验证报告</h1>
+  <div class="meta">
+    日期：2026-08-10<br>
+    工作目录：<code>/home/xiehan/下载/workspace_summer</code><br>
+    目标：完成强化学习训练环境准备，验证 Isaac Gym / legged_gym 可训练、可保存、可播放，并对自带 <code>dog.urdf</code> 做第一轮检查和修正。
+  </div>
+
+  <h2>1. 今日总体结论</h2>
+  <ul>
+    <li><span class="ok">已完成</span> Isaac Gym Preview 4 安装与 Python 导入验证。</li>
+    <li><span class="ok">已完成</span> conda 环境 <code>leggedgym</code> 配置，Python 版本为 <code>3.8.20</code>。</li>
+    <li><span class="ok">已完成</span> PyTorch CUDA 验证，当前 <code>torch 2.4.1+cu121</code> 可以识别 RTX 4060 Laptop GPU。</li>
+    <li><span class="ok">已完成</span> <code>rsl_rl</code> 和 <code>legged_gym</code> editable 安装。</li>
+    <li><span class="ok">已完成</span> Isaac Gym 官方 demo 运行，窗口可打开，GPU PhysX 可用。</li>
+    <li><span class="ok">已完成</span> <code>anymal_c_flat</code> 训练、保存 checkpoint、播放验证。</li>
+    <li><span class="ok">已完成</span> 自己的 <code>dog.urdf</code> 结构检查、足端碰撞体修正、PyBullet 和 Isaac Gym 加载验证。</li>
+    <li><span class="warn">待完成</span> 把 <code>dog.urdf</code> 正式接入 <code>legged_gym</code>，注册 <code>dog_flat</code> 任务并开始训练。</li>
+  </ul>
+
+  <h2>2. 机器配置记录</h2>
+  <table>
+    <tr><th>项目</th><th>结果</th></tr>
+    <tr><td>操作系统环境</td><td>Ubuntu 桌面环境，工作路径在 <code>/home/xiehan/下载/workspace_summer</code></td></tr>
+    <tr><td>GPU</td><td>NVIDIA GeForce RTX 4060 Laptop GPU</td></tr>
+    <tr><td>显存</td><td>8188 MiB，约 8GB</td></tr>
+    <tr><td>NVIDIA Driver</td><td>590.48.01</td></tr>
+    <tr><td>CUDA 显示版本</td><td>13.1，来自 <code>nvidia-smi</code>；训练实际使用 PyTorch cu121 wheel</td></tr>
+    <tr><td>内存</td><td>23 GiB，总体够用；无 swap</td></tr>
+  </table>
+
+  <h2>3. 环境选择：为什么今天采用 Isaac Gym</h2>
+  <p>
+    老师要求提交 RL 演示视频，允许使用 Isaac Gym 或 Isaac Lab，并要求后续做 MuJoCo 中的 sim2sim 验证。
+    对当前 RTX 4060 Laptop 8GB 显存来说，Isaac Gym + legged_gym 路线更轻，安装和训练成本更可控。
+  </p>
+  <p>
+    Isaac Lab 功能更新，但依赖更重，对显存和 Omniverse/Isaac Sim 版本匹配要求更高。今天的阶段目标是尽快打通
+    “训练、保存、播放、URDF 加载验证”这一条链路，所以选择 Isaac Gym Preview 4 更合适。
+  </p>
+
+  <h2>4. 已安装与配置内容</h2>
+  <table>
+    <tr><th>组件</th><th>路径 / 版本</th><th>状态</th></tr>
+    <tr><td>conda env</td><td><code>leggedgym</code>，Python <code>3.8.20</code></td><td>可用</td></tr>
+    <tr><td>PyTorch</td><td><code>torch 2.4.1+cu121</code></td><td>CUDA 可用</td></tr>
+    <tr><td>NumPy</td><td><code>numpy 1.23.5</code></td><td>可用</td></tr>
+    <tr><td>Isaac Gym</td><td><code>rl_stack/isaacgym</code></td><td>可导入，可加载模型</td></tr>
+    <tr><td>rsl_rl</td><td><code>rl_stack/rsl_rl</code>，checkout <code>v1.0.2</code></td><td>editable 安装完成</td></tr>
+    <tr><td>legged_gym</td><td><code>rl_stack/legged_gym</code></td><td>editable 安装完成</td></tr>
+    <tr><td>PyBullet</td><td><code>pybullet 3.2.7</code></td><td>已安装，用于 URDF 加载验证</td></tr>
+  </table>
+
+  <h2>5. 今天遇到的问题与解决方法</h2>
+
+  <h3>5.1 Isaac Gym 压缩包文件名不匹配</h3>
+  <p><strong>现象：</strong>执行解压命令时报错：</p>
+  <pre>tar (child): IsaacGym_Preview_4_Package.tar.gz：无法 open: 没有那个文件或目录</pre>
+  <p><strong>原因：</strong>下载到本地的文件是 <code>IsaacGym_Preview_4_Package.tar</code>，不是 <code>.tar.gz</code>。</p>
+  <p><strong>处理：</strong>根据真实文件名使用 tar 解压，并安装 Isaac Gym 的 Python 包。</p>
+  <pre>cd /home/xiehan/下载/workspace_summer
+tar -xf IsaacGym_Preview_4_Package.tar -C rl_stack
+cd rl_stack/isaacgym/python
+pip install -e .</pre>
+
+  <h3>5.2 Isaac Gym 导入时找不到 libpython3.8.so.1.0</h3>
+  <p><strong>现象：</strong></p>
+  <pre>ImportError: libpython3.8.so.1.0: cannot open shared object file: No such file or directory</pre>
+  <p><strong>原因：</strong>Isaac Gym 的二进制绑定需要找到 conda 环境里的 Python 动态库。</p>
+  <p><strong>处理：</strong>给当前 shell 增加 <code>LD_LIBRARY_PATH</code>。</p>
+  <pre>export LD_LIBRARY_PATH=/home/xiehan/anaconda3/envs/leggedgym/lib:$LD_LIBRARY_PATH</pre>
+  <p><strong>验证：</strong></p>
+  <pre>python -c "import isaacgym; from isaacgym import gymapi; print('isaacgym ok')"</pre>
+
+  <h3>5.3 Isaac Gym 官方 demo 的 warning 判断</h3>
+  <p><strong>现象：</strong>运行 <code>1080_balls_of_solitude.py</code> 时出现：</p>
+  <pre>WARNING: Forcing CPU pipeline.
+Not connected to PVD
++++ Using GPU PhysX
+Physics Engine: PhysX
+Physics Device: cuda:0
+GPU Pipeline: disabled</pre>
+  <p><strong>判断：</strong>这不是安装失败。关键是 <code>Using GPU PhysX</code> 和 <code>Physics Device: cuda:0</code>，
+  说明物理仿真使用了 GPU。<code>PVD</code> 是 PhysX Visual Debugger，没有连接也不影响训练。</p>
+
+  <h3>5.4 legged_gym 初次训练可运行但不一定马上保存很多模型</h3>
+  <p>
+    初次运行 <code>anymal_c_flat</code> 时，终端能够输出 <code>iteration / reward / loss</code>，说明训练管线已通。
+    <code>legged_gym</code> 默认每 <code>50</code> iteration 做一次保存检查，并在结束时保存当前 iteration。
+  </p>
+  <p><strong>已生成的 checkpoint：</strong></p>
+  <pre>logs/flat_anymal_c/Aug10_15-53-23_/model_0.pt
+logs/flat_anymal_c/Aug10_15-53-23_/model_10.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_0.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_50.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_100.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_150.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_200.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_250.pt
+logs/flat_anymal_c/Aug10_16-27-49_/model_300.pt</pre>
+
+  <h3>5.5 play.py 弹出曲线窗口，被误认为训练窗口</h3>
+  <p><strong>现象：</strong>播放时看到的是训练结果曲线窗口，没有第一时间看到机器人。</p>
+  <p><strong>原因：</strong><code>play.py</code> 内部会在约 100 step 后调用 logger 画状态曲线，matplotlib 窗口可能盖住 Isaac Gym Viewer。</p>
+  <p><strong>处理：</strong>播放前设置无 GUI 绘图后端，禁掉曲线窗口。</p>
+  <pre>export MPLBACKEND=Agg</pre>
+
+  <h3>5.6 Isaac Gym 和 PyTorch 的 import 顺序</h3>
+  <p><strong>现象：</strong>如果先 <code>import torch</code> 再 <code>import isaacgym</code>，可能出现：</p>
+  <pre>ImportError: PyTorch was imported before isaacgym modules. Please import torch after isaacgym modules.</pre>
+  <p><strong>处理：</strong>在脚本里把 <code>import isaacgym</code> 放在 <code>import torch</code> 前面。</p>
+  <pre>import isaacgym
+from isaacgym import gymapi
+import torch</pre>
+
+  <h2>6. 今日关键命令记录</h2>
+  <h3>6.1 激活环境</h3>
+  <pre>cd /home/xiehan/下载/workspace_summer
+source /home/xiehan/anaconda3/etc/profile.d/conda.sh
+conda activate leggedgym
+export LD_LIBRARY_PATH=/home/xiehan/anaconda3/envs/leggedgym/lib:$LD_LIBRARY_PATH</pre>
+
+  <h3>6.2 Isaac Gym 官方 demo 验证</h3>
+  <pre>cd /home/xiehan/下载/workspace_summer/rl_stack/isaacgym/python/examples
+python 1080_balls_of_solitude.py</pre>
+
+  <h3>6.3 legged_gym 短训练验证</h3>
+  <pre>cd /home/xiehan/下载/workspace_summer/rl_stack/legged_gym
+python legged_gym/scripts/train.py --task=anymal_c_flat --headless --num_envs=128 --max_iterations=10</pre>
+
+  <h3>6.4 300 iteration 训练与播放</h3>
+  <pre>python legged_gym/scripts/train.py --task=anymal_c_flat --headless --num_envs=512 --max_iterations=300
+export MPLBACKEND=Agg
+python legged_gym/scripts/play.py --task=anymal_c_flat --num_envs=1 --load_run=Aug10_16-27-49_ --checkpoint=300</pre>
+  <p><strong>观察结果：</strong>机器人可以走起来，并且较稳定。该结果证明 Isaac Gym / legged_gym 的官方任务训练和播放链路已经打通。</p>
+
+  <h2>7. dog.urdf 检查与修改记录</h2>
+  <p><strong>检查对象：</strong></p>
+  <pre>/home/xiehan/下载/workspace_summer/dog/urdf/dog.urdf
+/home/xiehan/下载/workspace_summer/rl_project/dog/urdf/dog.urdf</pre>
+  <p>两个文件内容已同步，避免不同脚本加载到不同版本。</p>
+
+  <h3>7.1 URDF 检查结果</h3>
+  <table>
+    <tr><th>检查项</th><th>结果</th></tr>
+    <tr><td>link 数量</td><td>17</td></tr>
+    <tr><td>joint 数量</td><td>16</td></tr>
+    <tr><td>可动关节</td><td>12 个：四条腿各 hip / thigh / calf</td></tr>
+    <tr><td>root link</td><td><code>base</code></td></tr>
+    <tr><td>总质量</td><td><code>21.71528 kg</code></td></tr>
+    <tr><td>mesh 路径</td><td>全部存在</td></tr>
+    <tr><td>关节 limit</td><td>存在且上下限有效</td></tr>
+    <tr><td>质量 / 惯量</td><td>质量为正，惯量矩阵正定</td></tr>
+    <tr><td>发现的硬错误</td><td>0 个</td></tr>
+  </table>
+
+  <h3>7.2 发现并修复的问题：足端碰撞体不一致</h3>
+  <p><strong>原状态：</strong><code>FL_foot</code>、<code>FR_foot</code>、<code>RR_foot</code> 使用 STL mesh 作为 collision；
+  <code>RL_foot</code> 使用 sphere 作为 collision。</p>
+  <p><strong>风险：</strong>四只脚接触模型不一致，训练时容易出现接触力不平衡、偏腿、抖动、奖励曲线不稳定。</p>
+  <p><strong>修改：</strong>将四只脚的 collision 统一为 <code>sphere radius="0.02"</code>，并在 URDF 中加入中文注释：</p>
+  <pre>&lt;!-- RL训练稳定性修改：足端碰撞统一用小球，避免左右脚 STL 网格接触不一致。 --&gt;
+&lt;sphere radius="0.02"/&gt;</pre>
+  <p><strong>修改位置：</strong></p>
+  <pre>dog/urdf/dog.urdf: FL_foot / FR_foot / RR_foot / RL_foot collision
+rl_project/dog/urdf/dog.urdf: FL_foot / FR_foot / RR_foot / RL_foot collision</pre>
+
+  <h3>7.3 dog.urdf 加载验证</h3>
+  <p><strong>PyBullet 验证：</strong></p>
+  <pre>python /home/xiehan/下载/workspace_summer/rl_project/pybullet_load_urdf.py --mode direct</pre>
+  <p>结果：模型成功加载，DIRECT 模式完成 300 step。</p>
+  <p><strong>Isaac Gym 验证：</strong>自定义 loader 成功读取 <code>dog/urdf/dog.urdf</code>。</p>
+  <pre>isaacgym_load_ok
+bodies=13
+dofs=12
+dof_names=[
+  'FL_hip_joint', 'FL_thigh_joint', 'FL_calf_joint',
+  'FR_hip_joint', 'FR_thigh_joint', 'FR_calf_joint',
+  'RL_hip_joint', 'RL_thigh_joint', 'RL_calf_joint',
+  'RR_hip_joint', 'RR_thigh_joint', 'RR_calf_joint'
+]</pre>
+  <p><strong>注意：</strong>Isaac Gym 中设置 <code>collapse_fixed_joints=True</code> 后，foot fixed joint 会被折叠，因此显示为 13 bodies、12 DOFs。这是正常现象。</p>
+
+  <h2>8. 当前已得到的训练/播放成果</h2>
+  <table>
+    <tr><th>任务</th><th>结果</th><th>说明</th></tr>
+    <tr><td><code>anymal_c_flat</code> 10 iteration</td><td>训练、保存、播放成功</td><td>主要用于验证流程，不代表最终策略效果</td></tr>
+    <tr><td><code>anymal_c_flat</code> 300 iteration</td><td>播放时可见机器人稳定行走</td><td>证明当前机器可完成 RL 训练和 Isaac Gym 演示视频录制</td></tr>
+    <tr><td><code>dog.urdf</code></td><td>PyBullet / Isaac Gym 均可加载</td><td>尚未正式接入 <code>legged_gym</code> 训练任务</td></tr>
+  </table>
+
+  <h2>9. 当前仍需推进的任务</h2>
+  <ol>
+    <li>将 <code>dog.urdf</code> 和 meshes 放入 <code>legged_gym/resources/robots/dog/</code>。</li>
+    <li>复制并改写 <code>anymal_c_flat</code> 或 <code>a1</code> 配置，创建 <code>dog_flat</code>。</li>
+    <li>配置 <code>asset.file</code>、<code>foot_name</code>、<code>terminate_after_contacts_on</code>、<code>default_joint_angles</code>。</li>
+    <li>注意 calf 关节范围为 <code>[-2.72, -0.84]</code>，默认小腿角度必须是负数，例如 <code>-1.5</code> 左右，不能写 <code>0</code>。</li>
+    <li>先运行 <code>--num_envs=16 --max_iterations=1</code> 做最小加载测试。</li>
+    <li>通过后运行 <code>--num_envs=128 --max_iterations=10</code>，观察 reset、reward、是否炸飞。</li>
+    <li>稳定后再训练 <code>300</code>、<code>1000</code>、<code>3000</code> iteration。</li>
+    <li>播放 <code>dog_flat</code> checkpoint，录制 Isaac Gym 演示视频。</li>
+    <li>导出 policy，准备 MuJoCo 中的 observation / action 对齐，完成 sim2sim 验证。</li>
+  </ol>
+
+  <h2>10. 重要经验总结</h2>
+  <ul>
+    <li>8GB 显存可以做 legged_gym 四足强化学习，建议从 <code>num_envs=256</code> 或 <code>512</code> 开始，不够再降到 <code>128</code>。</li>
+    <li>训练 iteration 决定采样量和策略成熟度。10 轮只能验证链路，300 轮可初步看到效果，1000-3000 轮才更接近可提交质量。</li>
+    <li>URDF 不只是能打开就行，还要检查碰撞体、质量、惯量、关节限制、足端命名和默认姿态。</li>
+    <li>RL 不等于完全不用 SLAM。当前任务核心是 locomotion，但如果后续做真实机器人或复杂场景，定位、建图、路径规划仍然会用到 SLAM 相关知识。</li>
+    <li>MuJoCo sim2sim 最容易错的是 observation 顺序和 action 缩放，后续要严格对齐 Isaac Gym 训练环境。</li>
+  </ul>
+
+  <h2>11. 下一步推荐执行顺序</h2>
+  <pre>第一步：正式创建 dog_flat 任务
+第二步：dog_flat 最小加载测试，num_envs=16, max_iterations=1
+第三步：dog_flat 短训练，num_envs=128, max_iterations=10
+第四步：修 default_joint_angles / PD / action_scale
+第五步：dog_flat 300 iteration，播放看是否站立和移动
+第六步：dog_flat 1000-3000 iteration，录制 Isaac Gym 视频
+第七步：导出 policy，开始 MuJoCo sim2sim 验证</pre>
+
+  <h2>12. 今日状态一句话</h2>
+  <p>
+    今天已经把 Isaac Gym 强化学习环境从安装、报错修复、官方训练、checkpoint 播放，到自定义 URDF 第一轮验证全部打通。
+    后续工作的核心不再是环境安装，而是把自己的机器狗模型接入训练任务并调参。
+  </p>
+</body>
+</html>
